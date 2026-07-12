@@ -80,6 +80,18 @@ npx github:robinebers/codexcode --max-effort xhigh
 
 > **⚠️ Claude Code has no way of setting effort levels per subagent!** Whatever you set here is going to be used for every subagent, regardless of the model or how easy or difficult the task is.
 
+## Rewriting the model picker labels (experimental)
+
+By default, Claude Code's model picker still describes Opus/Sonnet/Haiku with their original Claude descriptions, even though they now answer as GPT models. The optional `--rewrite-labels` flag fixes the display so it reflects reality:
+
+```bash
+npx github:robinebers/codexcode --rewrite-labels
+```
+
+How it works: Claude Code is a single compiled file with those descriptions stored as plain text inside it. This flag makes a **throwaway copy** in a temp folder, rewrites just those description strings, and launches the copy. On macOS the copy is re-signed with a local ad-hoc signature so the system will run it. Your real Claude Code install is never touched, and the copy is deleted when you quit.
+
+**Heads up:** this is the one feature that does modify (a disposable copy of) Claude Code, so it steps outside the "completely unmodified" guarantee above. It's off by default and opt-in for that reason. It's also best-effort: if anything goes wrong, it quietly falls back to launching Claude Code normally. Works on macOS, Windows, and Linux.
+
 ## Privacy and logs
 
 Each session writes a small log file under `~/.codexcode/logs/` for debugging. It contains **metadata only**: timings, model names, request sizes. Your prompts, responses, code, and credentials are **never** logged. Old logs are automatically cleaned up (about 15 MB total).

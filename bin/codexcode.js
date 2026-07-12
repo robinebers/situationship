@@ -9,18 +9,24 @@
 import { spawn, execFileSync } from "node:child_process";
 import { startRouter } from "../lib/router.js";
 import { createSessionLogger } from "../lib/session-log.js";
+import { createPatchedClaude } from "../lib/label-patch.js";
 
 const MAX_EFFORT_LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
 
 function launcherOptions(argv) {
   let routerOnly = false;
   let maxEffort = "high";
+  let rewriteLabels = false;
   const userArgs = [];
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--router-only") {
       routerOnly = true;
+      continue;
+    }
+    if (arg === "--rewrite-labels") {
+      rewriteLabels = true;
       continue;
     }
     if (arg === "--max-effort" || arg.startsWith("--max-effort=")) {
@@ -34,7 +40,7 @@ function launcherOptions(argv) {
     userArgs.push(arg);
   }
 
-  return { routerOnly, userArgs, maxEffort };
+  return { routerOnly, userArgs, maxEffort, rewriteLabels };
 }
 
 /** Defaults unless the user already passed the flag. */
@@ -97,7 +103,7 @@ function spawnClaude(claudePath, claudeArgs, env) {
 }
 
 async function main() {
-  const { routerOnly, userArgs, maxEffort } = launcherOptions(process.argv.slice(2));
+  const { routerOnly, userArgs, maxEffort, rewriteLabels } = launcherOptions(process.argv.slice(2));
   const host = process.env.DUAL_HOST || "127.0.0.1";
   const pinPort = process.env.DUAL_PORT ? Number(process.env.DUAL_PORT) : 0;
   const sessionLogger = await createSessionLogger();
@@ -121,6 +127,7 @@ async function main() {
 
   let exiting = false;
   let child = null;
+  let labelCleanup = null;
   const shutdown = async (code = 0) => {
     if (exiting) return;
     exiting = true;
@@ -131,6 +138,13 @@ async function main() {
       await close();
     } catch {
       /* ignore */
+    }
+    if (labelCleanup) {
+      try {
+        labelCleanup();
+      } catch {
+        /* ignore */
+      }
     }
     sessionLogger.write("session_exit", { code });
     await sessionLogger.close();
@@ -156,6 +170,19 @@ async function main() {
     console.error("claude not on PATH — install Claude Code first");
     await shutdown(1);
     return;
+  }
+
+  let launchPath = claudePath;
+  if (rewriteLabels) {
+    try {
+      const patched = createPatchedClaude(claudePath, { logger: sessionLogger });
+      launchPath = patched.path;
+      labelCleanup = patched.cleanup;
+      console.error(`labels rewritten in a temporary copy (${patched.replaced} strings)`);
+    } catch (error) {
+      console.error(`--rewrite-labels failed, launching unmodified claude: ${error.message}`);
+      sessionLogger.write("label_patch_error", { error: error?.message || String(error) });
+    }
   }
 
   const childEnv = { ...process.env };
@@ -191,7 +218,7 @@ async function main() {
   );
   console.error("---");
 
-  child = spawnClaude(claudePath, claudeArgs, childEnv);
+  child = spawnClaude(launchPath, claudeArgs, childEnv);
 
   child.on("error", (e) => {
     console.error(`failed to spawn claude: ${e.message}`);
