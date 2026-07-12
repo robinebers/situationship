@@ -80,17 +80,19 @@ npx github:robinebers/codexcode --max-effort xhigh
 
 > **⚠️ Claude Code has no way of setting effort levels per subagent!** Whatever you set here is going to be used for every subagent, regardless of the model or how easy or difficult the task is.
 
-## Rewriting the model picker labels (experimental)
+## Rewriting the model picker labels (optional)
 
-By default, Claude Code's model picker still describes Opus/Sonnet/Haiku with their original Claude descriptions, even though they now answer as GPT models. The optional `--rewrite-labels` flag fixes the display so it reflects reality:
+**Off by default.** Normal `npx github:robinebers/codexcode` never patches Claude Code. Pass `--rewrite-labels` only if you want the picker text to say what each model really is:
 
 ```bash
 npx github:robinebers/codexcode --rewrite-labels
 ```
 
+Without the flag, Opus/Sonnet/Haiku still show Claude's original descriptions even though they answer as Sol/Terra/Luna. With the flag, those descriptions become `(GPT 5.6 Sol via Codex)`, and so on. The separate custom model row stays `GPT 5.6 Sol` / `Via Codex (Codex Code)` either way.
+
 How it works: Claude Code is a single compiled file with those descriptions stored as plain text inside it. This flag makes a **throwaway copy** in a temp folder, rewrites just those description strings, and launches the copy. On macOS the copy is re-signed with a local ad-hoc signature so the system will run it. Your real Claude Code install is never touched, and the copy is deleted when you quit.
 
-**Heads up:** this is the one feature that does modify (a disposable copy of) Claude Code, so it steps outside the "completely unmodified" guarantee above. It's off by default and opt-in for that reason. It's also best-effort: if anything goes wrong, it quietly falls back to launching Claude Code normally. Works on macOS, Windows, and Linux.
+**Heads up:** this is the one feature that does modify (a disposable copy of) Claude Code, so it steps outside the "completely unmodified" guarantee above. That is why it is opt-in. It is also best-effort: if anything goes wrong, it quietly falls back to launching Claude Code normally. Works on macOS, Windows, and Linux.
 
 ### 1M context rows
 
