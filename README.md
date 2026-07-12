@@ -92,6 +92,10 @@ How it works: Claude Code is a single compiled file with those descriptions stor
 
 **Heads up:** this is the one feature that does modify (a disposable copy of) Claude Code, so it steps outside the "completely unmodified" guarantee above. It's off by default and opt-in for that reason. It's also best-effort: if anything goes wrong, it quietly falls back to launching Claude Code normally. Works on macOS, Windows, and Linux.
 
+### 1M context rows
+
+Codex Code sets `CLAUDE_CODE_DISABLE_1M_CONTEXT=1` by default (with or without `--rewrite-labels`). That hides Anthropic-only picker rows like Sonnet 4.6 (1M) and stops Claude Code from labeling Opus as "with 1M context" when the request is really going to Codex (~350k). Override with `CLAUDE_CODE_DISABLE_1M_CONTEXT=0` if you want those Anthropic 1M entries back for native Claude models.
+
 ## Privacy and logs
 
 Each session writes a small log file under `~/.codexcode/logs/` for debugging. It contains **metadata only**: timings, model names, request sizes. Your prompts, responses, code, and credentials are **never** logged. Old logs are automatically cleaned up (about 15 MB total).

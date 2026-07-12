@@ -201,11 +201,17 @@ async function main() {
   childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION =
     childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION || "gpt-5.6-sol";
   childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_NAME =
-    childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_NAME || "GPT 5.6 Sol (ChatGPT)";
+    childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_NAME || "GPT 5.6 Sol (Codex)";
   childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION =
     childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION ||
-    "Via ChatGPT Codex (Codex Code)";
+    "Via Codex (Codex Code)";
 
+  // Codex models do not have Anthropic's 1M context. Without this, Claude Code
+  // advertises "with 1M context", offers Sonnet 4.6 (1M) / Opus (1M) rows, and
+  // may try to use [1m] model ids that aren't real on the Codex side.
+  if (childEnv.CLAUDE_CODE_DISABLE_1M_CONTEXT == null) {
+    childEnv.CLAUDE_CODE_DISABLE_1M_CONTEXT = "1";
+  }
   // Avoid stale gateway discovery without deleting the user's shared cache.
   delete childEnv.CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY;
 
