@@ -9,18 +9,24 @@
 import { spawn, execFileSync } from "node:child_process";
 import { startRouter } from "../lib/router.js";
 import { createSessionLogger } from "../lib/session-log.js";
+import { createPatchedClaude } from "../lib/label-patch.js";
 
 const MAX_EFFORT_LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
 
 function launcherOptions(argv) {
   let routerOnly = false;
   let maxEffort = "high";
+  let rewriteLabels = false;
   const userArgs = [];
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--router-only") {
       routerOnly = true;
+      continue;
+    }
+    if (arg === "--rewrite-labels") {
+      rewriteLabels = true;
       continue;
     }
     if (arg === "--max-effort" || arg.startsWith("--max-effort=")) {
@@ -34,7 +40,7 @@ function launcherOptions(argv) {
     userArgs.push(arg);
   }
 
-  return { routerOnly, userArgs, maxEffort };
+  return { routerOnly, userArgs, maxEffort, rewriteLabels };
 }
 
 /** Defaults unless the user already passed the flag. */
@@ -97,7 +103,7 @@ function spawnClaude(claudePath, claudeArgs, env) {
 }
 
 async function main() {
-  const { routerOnly, userArgs, maxEffort } = launcherOptions(process.argv.slice(2));
+  const { routerOnly, userArgs, maxEffort, rewriteLabels } = launcherOptions(process.argv.slice(2));
   const host = process.env.DUAL_HOST || "127.0.0.1";
   const pinPort = process.env.DUAL_PORT ? Number(process.env.DUAL_PORT) : 0;
   const sessionLogger = await createSessionLogger();
@@ -121,6 +127,7 @@ async function main() {
 
   let exiting = false;
   let child = null;
+  let labelCleanup = null;
   const shutdown = async (code = 0) => {
     if (exiting) return;
     exiting = true;
@@ -131,6 +138,13 @@ async function main() {
       await close();
     } catch {
       /* ignore */
+    }
+    if (labelCleanup) {
+      try {
+        labelCleanup();
+      } catch {
+        /* ignore */
+      }
     }
     sessionLogger.write("session_exit", { code });
     await sessionLogger.close();
@@ -158,6 +172,19 @@ async function main() {
     return;
   }
 
+  let launchPath = claudePath;
+  if (rewriteLabels) {
+    try {
+      const patched = createPatchedClaude(claudePath, { logger: sessionLogger });
+      launchPath = patched.path;
+      labelCleanup = patched.cleanup;
+      console.error(`labels rewritten in a temporary copy (${patched.replaced} strings)`);
+    } catch (error) {
+      console.error(`--rewrite-labels failed, launching unmodified claude: ${error.message}`);
+      sessionLogger.write("label_patch_error", { error: error?.message || String(error) });
+    }
+  }
+
   const childEnv = { ...process.env };
   childEnv.ANTHROPIC_BASE_URL = base;
   childEnv._CLAUDE_CODE_ASSUME_FIRST_PARTY_BASE_URL = "1";
@@ -174,11 +201,17 @@ async function main() {
   childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION =
     childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION || "gpt-5.6-sol";
   childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_NAME =
-    childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_NAME || "GPT 5.6 Sol (ChatGPT)";
+    childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_NAME || "GPT 5.6 Sol";
   childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION =
     childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION ||
-    "Via ChatGPT Codex (Codex Code)";
+    "Via Codex (Codex Code)";
 
+  // Codex models do not have Anthropic's 1M context. Without this, Claude Code
+  // advertises "with 1M context", offers Sonnet 4.6 (1M) / Opus (1M) rows, and
+  // may try to use [1m] model ids that aren't real on the Codex side.
+  if (childEnv.CLAUDE_CODE_DISABLE_1M_CONTEXT == null) {
+    childEnv.CLAUDE_CODE_DISABLE_1M_CONTEXT = "1";
+  }
   // Avoid stale gateway discovery without deleting the user's shared cache.
   delete childEnv.CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY;
 
@@ -191,7 +224,7 @@ async function main() {
   );
   console.error("---");
 
-  child = spawnClaude(claudePath, claudeArgs, childEnv);
+  child = spawnClaude(launchPath, claudeArgs, childEnv);
 
   child.on("error", (e) => {
     console.error(`failed to spawn claude: ${e.message}`);
