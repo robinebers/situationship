@@ -1,0 +1,43 @@
+{
+  "name": "codexcode",
+  "version": "0.1.0",
+  "description": "Run OpenAI/Codex models alongside Claude models in Claude Code",
+  "type": "module",
+  "bin": {
+    "codexcode": "./bin/codexcode.js"
+  },
+  "scripts": {
+    "check": "node --check lib/router.js && node --check lib/session-log.js && node --check bin/codexcode.js",
+    "test": "node --test"
+  },
+  "files": [
+    "bin",
+    "codexcode.jpg",
+    "lib",
+    "docs",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "codex",
+    "chatgpt",
+    "anthropic"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/robinebers/codexcode.git"
+  },
+  "bugs": {
+    "url": "https://github.com/robinebers/codexcode/issues"
+  },
+  "homepage": "https://github.com/robinebers/codexcode#readme",
+  "dependencies": {
+    "rotating-file-stream": "^3.2.9"
+  }
+}
