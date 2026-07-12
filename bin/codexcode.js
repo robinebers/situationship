@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * npx codexcode  — free port → dual router → claude → teardown
+ * npx codexcode  — free port → Codex Code router → claude → teardown
  *
  *   npx codexcode
  *   npx codexcode -c
@@ -177,7 +177,7 @@ async function main() {
     childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_NAME || "GPT 5.6 Sol (ChatGPT)";
   childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION =
     childEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION ||
-    "via dual-router · ChatGPT Codex";
+    "Via ChatGPT Codex (Codex Code)";
 
   // Avoid stale gateway discovery without deleting the user's shared cache.
   delete childEnv.CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY;
