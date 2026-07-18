@@ -6,9 +6,11 @@
  *   npx situationship -c
  *   npx situationship --router-only
  */
+import fs from "node:fs";
 import { spawn, execFileSync } from "node:child_process";
 import { startRouter } from "../lib/router.js";
 import { createSessionLogger } from "../lib/session-log.js";
+import { routingPrompt } from "../lib/system-prompt.js";
 
 const MAX_EFFORT_LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
 
@@ -121,11 +123,19 @@ async function main() {
 
   let exiting = false;
   let child = null;
+  let promptPath = null;
   const shutdown = async (code = 0) => {
     if (exiting) return;
     exiting = true;
     if (child && child.exitCode == null && child.signalCode == null) {
       child.kill(code === 130 ? "SIGINT" : "SIGTERM");
+    }
+    if (promptPath) {
+      try {
+        fs.unlinkSync(promptPath);
+      } catch {
+        /* ignore */
+      }
     }
     try {
       await close();
@@ -181,6 +191,20 @@ async function main() {
   delete childEnv.CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY;
 
   const claudeArgs = withDefaults(userArgs);
+
+  // Tell the model it sits behind the router. The file lives next to the
+  // session log so it is ephemeral, and a user-supplied append flag wins.
+  const userAppends = userArgs.some((a) => a.startsWith("--append-system-prompt"));
+  if (!userAppends) {
+    try {
+      const candidate = sessionLogger.path.replace(/\.jsonl$/, ".prompt.md");
+      fs.writeFileSync(candidate, routingPrompt(childEnv), { mode: 0o600 });
+      promptPath = candidate;
+      claudeArgs.unshift("--append-system-prompt-file", promptPath);
+    } catch (error) {
+      sessionLogger.write("prompt_file_error", { error: error?.message || error });
+    }
+  }
 
   console.error(`router ${base}`);
   console.error(`log ${sessionLogger.path}`);

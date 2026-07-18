@@ -7,7 +7,7 @@
     "situationship": "bin/situationship.js"
   },
   "scripts": {
-    "check": "node --check lib/router.js && node --check lib/session-log.js && node --check bin/situationship.js",
+    "check": "node --check lib/router.js && node --check lib/session-log.js && node --check lib/system-prompt.js && node --check bin/situationship.js",
     "test": "node --test",
     "prepublishOnly": "npm run check && npm test"
   },
