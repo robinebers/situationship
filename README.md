@@ -51,7 +51,7 @@ No exact versions are required or checked. The versions this was built and teste
 ## Run it
 
 ```bash
-npx github:robinebers/situationship
+npx situationship
 ```
 
 That's it. It finds a free local port, starts the translator, launches Claude Code pointed at it, and cleans everything up when you quit. You can run as many as you'd like.
@@ -75,7 +75,7 @@ Claude Code doesn't know it's talking to GPT models, so it asks for the same "th
 So by default, Situationship caps the effort sent to GPT models at `high`. Claude requests are never touched by this cap. If you want the GPT models to think harder (and spend more of your subscription), raise it:
 
 ```bash
-npx github:robinebers/situationship --max-effort xhigh
+npx situationship --max-effort xhigh
 ```
 
 > **⚠️ Claude Code has no way of setting effort levels per subagent!** Whatever you set here is going to be used for every subagent, regardless of the model or how easy or difficult the task is.
