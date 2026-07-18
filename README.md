@@ -1,6 +1,6 @@
 # Dexcode
 
-![Claude Code running GPT models through Dexcode](dexcode.jpg)
+![Claude Code running GPT models through Dexcode](https://raw.githubusercontent.com/robinebers/dexcode/main/dexcode.jpg)
 
 **Use your ChatGPT/Codex subscription *inside* Claude Code, alongside Claude Fable 5.**
 
