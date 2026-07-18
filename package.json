@@ -1,6 +1,6 @@
 {
   "name": "situationship",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Run OpenAI/Codex models alongside Claude models in Claude Code",
   "type": "module",
   "bin": {
